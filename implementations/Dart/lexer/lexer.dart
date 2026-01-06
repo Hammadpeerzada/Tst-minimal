@@ -187,6 +187,9 @@ class Lexer {
     // Skip '0x' or '0X'
     pos += 2;
     
+    if (isAtEnd || (_isValidNumberBreak(source[pos]) && source[pos] != LEXER.NumberSeparator))
+      throw FormatException('Incomplete hex number: expected digits after 0x');
+    
     bool separated = false;
     
     while (!isAtEnd) {
@@ -201,11 +204,18 @@ class Lexer {
         continue;
       }
       
-      if (!_isHexDigit(c))
-        break;
+      if (_isHexDigit(c)) {
+        separated = false;
+        pos++;
+        continue;
+      }
       
-      separated = false;
-      pos++;
+      if (_isValidNumberBreak(c))
+        break;
+      else {
+         throw FormatException('Invalid hex digit: $c');
+      }
+      
     }
     
     final text = source.substring(start, pos);
@@ -222,6 +232,9 @@ class Lexer {
     // Skip '0b' or '0B'
     pos += 2;
     
+    if (isAtEnd || (_isValidNumberBreak(source[pos]) && source[pos] != LEXER.NumberSeparator))
+      throw FormatException('Incomplete binary number: expected digits after 0b');
+    
     bool separated = false;
     
     while (!isAtEnd) {
@@ -236,11 +249,18 @@ class Lexer {
         continue;
       }
       
-      if (!_isBinDigit(c))
-        break;
+      if (_isBinDigit(c)) {
+        separated = false;
+        pos++;
+        continue;
+      }
       
-      separated = false;
-      pos++;
+      if (_isValidNumberBreak(c))
+        break;
+      else {
+        throw FormatException('Invalid binary digit: $c');
+      }
+      
     }
     
     final text = source.substring(start, pos);
@@ -257,6 +277,9 @@ class Lexer {
     // Skip '0o' or '0O'
     pos += 2;
     
+    if (isAtEnd || (_isValidNumberBreak(source[pos]) && source[pos] != LEXER.NumberSeparator))
+      throw FormatException('Incomplete hex number: expected digits after 0o');
+    
     bool separated = false;
     
     while (!isAtEnd) {
@@ -271,11 +294,18 @@ class Lexer {
         continue;
       }
       
-      if (!_isOctDigit(c))
-        break;
+      if (_isOctDigit(c)) {
+        separated = false;
+        pos++;
+        continue;
+      }
       
-      separated = false;
-      pos++;
+      if (_isValidNumberBreak(c))
+        break;
+      else {
+        throw FormatException('Invalid octal digit: $c');
+      }
+      
     }
     
     final text = source.substring(start, pos);
@@ -342,11 +372,18 @@ class Lexer {
         continue;
       }
       
-      // If not a digit, stop parsing
-      if (!_isDigit(c))
-        break;
+      // If it a digit, continue parsing
+      if (_isDigit(c)) {
+        pos++;
+        continue;
+      }
       
-      pos++;
+      if (_isValidNumberBreak(c))
+        break;
+      else {
+        throw FormatException('Invalid decimal digit: $c');
+      }
+      
     }
     
     final text = source.substring(start, pos);
@@ -392,6 +429,9 @@ class Lexer {
   bool _isNumberStart(String c) =>
       _isDigit(c) || c == '.';
 
+  bool _isValidNumberBreak(String c) =>
+    LEXER.whitespaces.contains(c) || LEXER.Operators.contains(c);
+      
   bool _isAlpha(String c) =>
       (c.codeUnitAt(0) | 32) >= 97 && (c.codeUnitAt(0) | 32) <= 122;
 
