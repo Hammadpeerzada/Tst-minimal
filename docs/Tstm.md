@@ -14,6 +14,9 @@ TSTM allows defining named values using:
 
 The language prioritizes a **small, deterministic core** with clear runtime behavior.
 
+Naming Note:
+> **TST (Minimal)** is informally referred to as **TSTM** in code and repositories. Both names refer to the **same specification**.
+
 ---
 
 ## Program Structure
@@ -461,27 +464,35 @@ TST acts as the **“style layer” of an application**, designed to be:
 
 ---
 
-### Why a Minimal Version Exists
+### Why TST (Minimal) Exists
 
-TST (Minimal) was created to:
+TST (Minimal) exists because many applications do **not** need a full style language.
 
-* validate the language core quickly
-* reduce implementation complexity
-* avoid premature design commitments
-* allow real-world usage while the full language evolves
+They need:
 
-The minimal version can be implemented in **days**, not months, while still preserving:
+* a readable theme format
+* computed values
+* color math
+* simple conditional logic
+* runtime evaluation
 
-* the AST model
-* runtime evaluation rules
-* operator semantics
-* forward compatibility with full TST
+without committing to a full styling system.
+
+TST (Minimal) provides exactly that — and **stops there on purpose**.
+
+It is designed to be:
+
+* implemented quickly
+* maintained easily
+* embedded safely
+* stable over time
 
 ---
 
 ### Design Principle
 
-> **TST (Minimal) is not a different language.**
-> It is the **foundation layer** of TST.
+> **TST (Minimal) is a permanent, intentionally limited format.**
+> It will always exist, even if full TST grows far beyond it.
 
-Everything added later in full TST is expected to **build on this core**, not replace it.
+TST (Minimal) is not a subset waiting to grow up.
+It is the **small, sharp tool** that stays small by design.
