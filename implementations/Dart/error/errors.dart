@@ -49,6 +49,10 @@ abstract class SourceError {
 }
 
 // Specific error types
+class ResolverError extends SourceError {
+  ResolverError(super.message, super.offset, [super.length]);
+}
+
 class LexerError extends SourceError {
   LexerError(super.message, super.offset, [super.length]);
 }
