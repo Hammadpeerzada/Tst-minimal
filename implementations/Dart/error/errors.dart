@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import '../constants/const-errors.dart';
 import '../lexer/source.dart';
 
 // Base class for all source‑related errors.
@@ -16,7 +17,9 @@ abstract class SourceError {
   SourceError(this.message, this.offset, [this.length = 1]);
 
   // Compute line/column and pretty‑print the error with context.
-  String format(Source source) {
+  String format(Source source, {bool colored = false}) {
+    final name = source.name ?? '<anonymous>';
+    final details = '( No Details Provided )';
     int line = 1, col = 1;
     int lineStart = 0;
     for (int i = 0; i < offset && i < source.length; i++) {
@@ -39,9 +42,20 @@ abstract class SourceError {
 
     final underline = ' ' * (col - 1) + '^' * caretCount;
 
-    return '$runtimeType($message) at @$line:$col\n'
-           '$lineText\n'
-           '$underline';
+    return colored
+    ? '${E.errorType}$runtimeType${E.punctuation}(${E.message}$message${E.punctuation})\n'
+      '    ${E.context}File ${E.name}"${name}" ${E.context}at ${E.symbols}@${E.location}$line${E.symbols}:${E.location}$col\n'
+      '\n'
+      '${E.reset}$lineText\n'
+      '${E.caret}$underline\n'
+      '$details${E.reset}'
+      
+    : '$runtimeType($message)\n'
+      '    File "${name}" at @$line:$col\n'
+      '\n'
+      '$lineText\n'
+      '$underline\n'
+      '${details}';
   }
 
   @override

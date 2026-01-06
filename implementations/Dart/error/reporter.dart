@@ -8,12 +8,14 @@ typedef ErrorPrinter = void Function(String);
 class ErrorReporter {
   final List<SourceError> _errors = [];
   final List<SourceError> _warnings = [];
+  final bool colord;
   final bool breakOnPush;
   final bool printImmediately;
   final ErrorPrinter printer;
   bool enable = true;
 
   ErrorReporter({
+    this.colord = false,
     this.breakOnPush = false,
     this.printImmediately = true,
     ErrorPrinter? printer,
@@ -26,7 +28,7 @@ class ErrorReporter {
 
     _errors.add(e);
     if (printImmediately) {
-      final out = source == null ? e.toString() : e.format(source);
+      final out = source == null ? e.toString() : e.format(source, colored: colord);
       printer(out);
     }
     return breakOnPush;
@@ -37,7 +39,7 @@ class ErrorReporter {
 
     _warnings.add(e);
     if (printImmediately) {
-      final out = source == null ? e.toString() : e.format(source);
+      final out = source == null ? e.toString() : e.format(source, colored: colord);
       printer(out);
     }
     return breakOnPush;
@@ -50,7 +52,7 @@ class ErrorReporter {
   SourceError? get last  => _errors.isEmpty ? null : _errors.last;
 
   String formattedAll(Source? source) =>
-      [..._warnings , ..._errors].map((e) => source == null ? e.toString() : e.format(source)).join('\n\n');
+      [..._warnings , ..._errors].map((e) => source == null ? e.toString() : e.format(source, colored: colord)).join('\n\n');
 
   // If exitNow is true, prints and exits. Otherwise throws an Exception with message.
   void throwIfAny({Source? source, bool exitNow = true}) {
