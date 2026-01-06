@@ -1,4 +1,5 @@
 import '../constants/Lexer.dart' as LEXER;
+import 'source.dart';
 
 enum TokenType {
   int32, float32, hex, bin, oct,
@@ -89,7 +90,7 @@ final List<OperatorNode> _operatorMap = [
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class Lexer {
-  final String source;
+  final Source source;
   int pos = 0;
   
   bool get isAtEnd => pos >= source.length;
@@ -150,7 +151,7 @@ class Lexer {
   
     while (!isAtEnd && _isHexDigit(source[pos])) pos++;
 
-    final lexeme = source.substring(start, pos);
+    final lexeme = source.chunk(start, pos);
     return Token(TokenType.hexColor, lexeme, start);
   }
   
@@ -159,7 +160,7 @@ class Lexer {
     while (!isAtEnd && _isIdentifierPart(source[pos]))
       pos++;
   
-    final name = source.substring(start, pos);
+    final name = source.chunk(start, pos);
     return Token(TokenType.identifier, name, start);
   }
 
@@ -218,7 +219,7 @@ class Lexer {
       
     }
     
-    final text = source.substring(start, pos);
+    final text = source.chunk(start, pos);
     
     // Must have at least one hex digit after 0x
     if (pos - start <= 2 ||
@@ -263,7 +264,7 @@ class Lexer {
       
     }
     
-    final text = source.substring(start, pos);
+    final text = source.chunk(start, pos);
     
     // Must have at least one binary digit after 0b
     if (pos - start <= 2 ||
@@ -308,7 +309,7 @@ class Lexer {
       
     }
     
-    final text = source.substring(start, pos);
+    final text = source.chunk(start, pos);
     
     // Must have at least one octal digit after 0o
     if (pos - start <= 2 ||
@@ -386,7 +387,7 @@ class Lexer {
       
     }
     
-    final text = source.substring(start, pos);
+    final text = source.chunk(start, pos);
     
     // Validate the decimal number
     if (text.isEmpty)
@@ -404,7 +405,7 @@ class Lexer {
   }
   
   bool _match(String s) {
-    if (source.startsWith(s, pos)) {
+    if (source.src.startsWith(s, pos)) {
       pos += s.length;
       return true;
     }
@@ -412,7 +413,7 @@ class Lexer {
   }
   
   bool _is(String c) {
-    return source.startsWith(c, pos);
+    return source.src.startsWith(c, pos);
   }
   
   bool _advance([String? c]) {
