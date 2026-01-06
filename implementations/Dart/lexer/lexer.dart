@@ -1,4 +1,4 @@
-import '../constants/Lexer.dart' as LEXER;
+import '../constants/const-lexer.dart' as LEXER;
 import '../error/errors.dart';
 import '../error/reporter.dart';
 import 'source.dart';
