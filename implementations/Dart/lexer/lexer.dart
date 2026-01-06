@@ -1,4 +1,6 @@
 import '../constants/Lexer.dart' as LEXER;
+import '../error/errors.dart';
+import '../error/reporter.dart';
 import 'source.dart';
 
 enum TokenType {
@@ -18,10 +20,12 @@ enum TokenType {
   coalesce, guard,
 
   lParen, rParen, comma,
-  eof; 
+  invalid, eof;
 }
 
 class Token {
+  static const Token INVALID = Token(TokenType.invalid, '', -1);
+  
   final TokenType type;
   final String lexeme;
   final int start;
@@ -90,17 +94,20 @@ final List<OperatorNode> _operatorMap = [
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class Lexer {
+  final ErrorReporter reporter;
   final Source source;
   int pos = 0;
   
   bool get isAtEnd => pos >= source.length;
   String get current => isAtEnd ? '' : source[pos];
 
-  Lexer(this.source);
+  Lexer(this.source, {required this.reporter});
 
   List<Token> lex() {
     final tokens = <Token>[];
-    while (!isAtEnd) tokens.add(_nextToken());
+    while (!isAtEnd && !reporter.hasBreakError)
+      tokens.add(_nextToken());
+
     return tokens;
   }
 
@@ -142,7 +149,8 @@ class Lexer {
     if (_isIdentifierStart(c))
       return _identifier();
 
-    throw FormatException('Unexpected character: $c');
+    _error("Unexpected character: '$c'", pos);
+    return Token.INVALID;
   }
 
   Token _hex() {
@@ -188,8 +196,10 @@ class Lexer {
     // Skip '0x' or '0X'
     pos += 2;
     
-    if (isAtEnd || (_isValidNumberBreak(source[pos]) && source[pos] != LEXER.NumberSeparator))
-      throw FormatException('Incomplete hex number: expected digits after 0x');
+    if (isAtEnd || (_isValidNumberBreak(source[pos]) && source[pos] != LEXER.NumberSeparator)) {
+      _error("Incomplete hex number: expected digits after 0x", start, pos - start);
+      return Token.INVALID;
+    }
     
     bool separated = false;
     
@@ -197,8 +207,10 @@ class Lexer {
       final c = source[pos];
       
       if (c == LEXER.NumberSeparator) {
-        if (separated || pos + 1 >= source.length)
-          throw FormatException('Invalid separator in hex number at position $pos');
+        if (separated || pos + 1 >= source.length) {
+          _error("Invalid separator in hex number", pos);
+          return Token.INVALID;
+        }
 
         separated = true;
         pos++;
@@ -214,7 +226,8 @@ class Lexer {
       if (_isValidNumberBreak(c))
         break;
       else {
-         throw FormatException('Invalid hex digit: $c');
+         _error("Invalid hex digit: '$c'", pos);
+         return Token.INVALID;
       }
       
     }
@@ -223,8 +236,10 @@ class Lexer {
     
     // Must have at least one hex digit after 0x
     if (pos - start <= 2 ||
-      (text.length > 2 && !_isHexDigit(text[text.length - 1])))
-      throw FormatException('Invalid hex number: $text');
+      (text.length > 2 && !_isHexDigit(text[text.length - 1]))) {
+      _error("Invalid hex number: '$text'", start, pos - start);
+      return Token.INVALID;
+    }
     
     return Token(TokenType.hex, text, start);
   }
@@ -233,8 +248,10 @@ class Lexer {
     // Skip '0b' or '0B'
     pos += 2;
     
-    if (isAtEnd || (_isValidNumberBreak(source[pos]) && source[pos] != LEXER.NumberSeparator))
-      throw FormatException('Incomplete binary number: expected digits after 0b');
+    if (isAtEnd || (_isValidNumberBreak(source[pos]) && source[pos] != LEXER.NumberSeparator)) {
+      _error("Incomplete binary number: expected digits after 0b", start, pos - start);
+      return Token.INVALID;
+    }
     
     bool separated = false;
     
@@ -242,8 +259,10 @@ class Lexer {
       final c = source[pos];
       
       if (c == LEXER.NumberSeparator) {
-        if (separated || pos + 1 >= source.length)
-          throw FormatException('Invalid separator in binary number at position $pos');
+        if (separated || pos + 1 >= source.length) {
+          _error("Invalid separator in binary number", pos);
+          return Token.INVALID;
+        }
 
         separated = true;
         pos++;
@@ -259,7 +278,8 @@ class Lexer {
       if (_isValidNumberBreak(c))
         break;
       else {
-        throw FormatException('Invalid binary digit: $c');
+        _error("Invalid binary digit: '$c'", pos);
+        return Token.INVALID;
       }
       
     }
@@ -268,8 +288,10 @@ class Lexer {
     
     // Must have at least one binary digit after 0b
     if (pos - start <= 2 ||
-      (text.length > 2 && !_isBinDigit(text[text.length - 1])))
-      throw FormatException('Invalid binary number: $text');
+      (text.length > 2 && !_isBinDigit(text[text.length - 1]))) {
+      _error("Invalid binary number: '$text'", start, pos - start);
+      return Token.INVALID;
+    }
     
     return Token(TokenType.bin, text, start);
   }
@@ -278,8 +300,10 @@ class Lexer {
     // Skip '0o' or '0O'
     pos += 2;
     
-    if (isAtEnd || (_isValidNumberBreak(source[pos]) && source[pos] != LEXER.NumberSeparator))
-      throw FormatException('Incomplete hex number: expected digits after 0o');
+    if (isAtEnd || (_isValidNumberBreak(source[pos]) && source[pos] != LEXER.NumberSeparator)) {
+      _error("Incomplete hex number: expected digits after 0o", start, pos - start);
+      return Token.INVALID;
+    }
     
     bool separated = false;
     
@@ -287,8 +311,10 @@ class Lexer {
       final c = source[pos];
       
       if (c == LEXER.NumberSeparator) {
-        if (separated || pos + 1 >= source.length)
-          throw FormatException('Invalid separator in octal number at position $pos');
+        if (separated || pos + 1 >= source.length) {
+          _error("Invalid separator in octal number", start, pos - start);
+          return Token.INVALID;
+        }
         
         separated = true;
         pos++;
@@ -304,7 +330,8 @@ class Lexer {
       if (_isValidNumberBreak(c))
         break;
       else {
-        throw FormatException('Invalid octal digit: $c');
+        _error("Invalid octal digit: '$c'", pos);
+        return Token.INVALID;
       }
       
     }
@@ -313,8 +340,10 @@ class Lexer {
     
     // Must have at least one octal digit after 0o
     if (pos - start <= 2 ||
-      (text.length > 2 && !_isOctDigit(text[text.length - 1])))
-      throw FormatException('Invalid octal number: $text');
+      (text.length > 2 && !_isOctDigit(text[text.length - 1]))) {
+      _error("Invalid octal number: '$text'", start, pos - start);
+      return Token.INVALID;
+    }
     
     return Token(TokenType.oct, text, start);
   }
@@ -336,8 +365,10 @@ class Lexer {
       final c = source[pos];
       
       if (c == LEXER.NumberSeparator) {
-        if (separated || pos + 1 >= source.length)
-          throw FormatException('Invalid separator in decimal number at position $pos');
+        if (separated || pos + 1 >= source.length) {
+          _error("Invalid separator in decimal number", pos);
+          return Token.INVALID;
+        }
 
         separated = true;
         pos++;
@@ -348,8 +379,10 @@ class Lexer {
       
       // Handle decimal point
       if (c == '.') {
-        if (hasDot || hasExp)
-          throw FormatException('Unexpected decimal point at position $pos');
+        if (hasDot || hasExp) {
+          _error("Unexpected decimal point", pos);
+          return Token.INVALID;
+        }
 
         hasDot = true;
         type = TokenType.float32;
@@ -359,9 +392,11 @@ class Lexer {
       
       // Handle exponent
       if (c == 'e' || c == 'E') {
-        if (hasExp)
-          throw FormatException('Unexpected exponent at position $pos');
-
+        if (hasExp) {
+          _error("Unexpected exponent", pos);
+          return Token.INVALID;
+        }
+        
         hasExp = true;
         type = TokenType.float32;
         pos++;
@@ -382,7 +417,8 @@ class Lexer {
       if (_isValidNumberBreak(c))
         break;
       else {
-        throw FormatException('Invalid decimal digit: $c');
+        _error("Invalid decimal digit: '$c'", pos);
+        return Token.INVALID;
       }
       
     }
@@ -390,18 +426,28 @@ class Lexer {
     final text = source.chunk(start, pos);
     
     // Validate the decimal number
-    if (text.isEmpty)
-      throw FormatException('Empty number literal');
+    if (text.isEmpty) {
+      _error("Empty number literal", start, pos - start);
+      return Token.INVALID;
+    }
     
-    if (hasDot && text.endsWith('.'))
-      throw FormatException('Incomplete decimal number: $text');
+    if (hasDot && text.endsWith('.')) {
+      _error("Incomplete decimal number: '$text'", start, pos - start);
+      return Token.INVALID;
+    }
     
     if (hasExp && (text.endsWith('e') || text.endsWith('E') || 
                    text.endsWith('e-') || text.endsWith('E-') ||
-                   text.endsWith('e+') || text.endsWith('E+')))
-      throw FormatException('Incomplete exponent in: $text');
+                   text.endsWith('e+') || text.endsWith('E+'))) {
+      _error("Incomplete exponent in: '$text'", start, pos - start);
+      return Token.INVALID;
+    }
     
     return Token(type, text, start);
+  }
+  
+  bool _error(String msg, [int start = -1, int len = 1]) {
+    return reporter.push(LexerError(msg, start, len), source: source);
   }
   
   bool _match(String s) {
