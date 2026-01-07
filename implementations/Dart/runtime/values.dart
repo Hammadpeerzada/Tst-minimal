@@ -1,17 +1,69 @@
+import '../error/errors.dart';
+import '../error/reporter.dart';
+import '../lexer/source.dart';
+
 typedef int32   = int;
 typedef float32 = double;
+typedef Position = ({int start, int length});
+
+abstract class RuntimeState {
+  static late ErrorReporter _reporter;
+  static late Source _source;
+  static List<Position> _positions = [];
+    
+  static void setup(Source source, ErrorReporter reporter) {
+    _source = source;
+    _reporter = reporter;
+  }
+  
+  static bool error(String msg) =>
+    _reporter.push(RuntimeError(msg, current.start, current.length), source: _source);
+  
+  static Position get current => _positions.last;
+  
+  static Position pushPosition(Position pos) {
+    _positions.add(pos);
+    return pos;
+  }
+  
+  static Position popPosition() =>
+    _positions.removeLast();
+}
+
 
 abstract class RuntimeValue {
   int32 asInt();
   float32 asFloat();
-
+  const RuntimeValue();
+  
   @override
   String toString();
 }
 
+class InvalidValue extends RuntimeValue {
+  static const InvalidValue instance = InvalidValue._();
+  
+  const InvalidValue._();
+
+  @override
+  float32 asFloat() {
+    RuntimeState.error('Invalid cannot be float32');
+    return 0.0;
+  }
+
+  @override
+  int32 asInt() {
+    RuntimeState.error('Invalid cannot be float32');
+    return 0;
+  }
+  
+  @override
+  String toString() => '(invalid)';
+}
+
 class IntValue extends RuntimeValue {
   final int32 value;
-  IntValue(this.value);
+  const IntValue(this.value);
 
   @override
   int32 asInt() => value;
@@ -24,10 +76,13 @@ class IntValue extends RuntimeValue {
 
 class FloatValue extends RuntimeValue {
   final float32 value;
-  FloatValue(this.value);
+  const FloatValue(this.value);
 
   @override
-  int32 asInt() => throw FormatException('Cannot convert float32 to int32 implicitly');
+  int32 asInt() {
+    RuntimeState.error('Cannot convert float32 to int32 implicitly');
+    return 0;
+  }
   @override
   float32 asFloat() => value;
 

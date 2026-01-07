@@ -74,3 +74,7 @@ class LexerError extends SourceError {
 class ParserError extends SourceError {
   ParserError(super.message, super.offset, [super.length]);
 }
+
+class RuntimeError extends SourceError {
+  RuntimeError(super.message, super.offset, [super.length]);
+}
